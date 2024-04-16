@@ -1,36 +1,52 @@
+// El paquete main es el paquete predeterminado para ejecutar el programa.
 package main
 
-import "fmt"
+// Importamos los paquetes necesarios.
+import (
+	"encoding/json" // Para decodificar la respuesta JSON de la API.
+	"fmt"           // Para imprimir en la consola.
+	"net/http"      // Para hacer la solicitud HTTP a la API.
+)
 
+// WeatherResponse es la estructura que coincide con la respuesta JSON de la API.
+type WeatherResponse struct {
+	Current struct {
+		TempC float64 `json:"temp_c"` // Solo nos interesa la temperatura en Celsius.
+	} `json:"current"`
+}
+
+// La función main es el punto de entrada del programa.
 func main() {
-	// Imprime "¡Hola Mundo!" en la consola
-	fmt.Println("¡Hola Mundo!")
-
-	// Imprime números del 1 al 10 en la consola
-	// Se inicializa i en 1, se repite mientras i sea menor o igual a 10, se incrementa i en cada iteración
-	for i := 1; i <= 10; i++ {
-		fmt.Println(i) // Imprime el valor actual de i
-	}
-
-	// Lista de grados en Celsius
-	listaGrados := []float64{20.5, 25.3, 30.0, 15.7, 28.9}
-
-	// Llamar a la función para mostrar los grados
-	mostrarGradosFahrenheit(listaGrados)
+	// Llamamos a la función obtenerClima para diferentes ciudades.
+	obtenerClima("Jaen", "Spain")
+	obtenerClima("Madrid", "Spain")
+	obtenerClima("Valencia", "Spain")
 }
 
-// Función para convertir grados Celsius a Fahrenheit
-func celsiusToFahrenheit(celsius float64) float64 {
-	return (celsius * 9 / 5) + 32
-}
+// obtenerClima hace una solicitud a la API del clima y muestra la temperatura en Celsius.
+func obtenerClima(ciudad, codigoPais string) {
+	// Formateamos la URL de la API con la ciudad y el código del país.
+	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?key=018eb411b2bc419bb18111159241604&q=%s,%s", ciudad, codigoPais)
 
-// Función para mostrar los grados en Fahrenheit de una lista
-func mostrarGradosFahrenheit(grados []float64) {
-	// Iterar sobre la lista de grados
-	for i, grado := range grados {
-		// Convertir el grado de Celsius a Fahrenheit
-		fahrenheit := celsiusToFahrenheit(grado)
-		// Mostrar el grado en Fahrenheit y su posición en la lista
-		fmt.Printf("Grado %d: %.2f°C = %.2f°F\n", i+1, grado, fahrenheit)
+	// Hacemos la solicitud HTTP.
+	respuesta, err := http.Get(url)
+	if err != nil {
+		// Si hay un error, lo imprimimos y salimos de la función.
+		fmt.Println("Error al obtener el clima:", err)
+		return
 	}
+	// Nos aseguramos de que el cuerpo de la respuesta se cierre al final de la función.
+	defer respuesta.Body.Close()
+
+	// Decodificamos la respuesta en la estructura WeatherResponse.
+	var weatherResponse WeatherResponse
+	err = json.NewDecoder(respuesta.Body).Decode(&weatherResponse)
+	if err != nil {
+		// Si hay un error, lo imprimimos y salimos de la función.
+		fmt.Println("Error al decodificar la respuesta:", err)
+		return
+	}
+
+	// Imprimimos la temperatura en Celsius.
+	fmt.Printf("La temperatura actual en %s, %s es %.2f grados Celsius.\n", ciudad, codigoPais, weatherResponse.Current.TempC)
 }
