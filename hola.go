@@ -3,10 +3,63 @@ package main
 
 // Importamos los paquetes necesarios.
 import (
+	"context"
 	"encoding/json" // Para decodificar la respuesta JSON de la API.
 	"fmt"           // Para imprimir en la consola.
-	"net/http"      // Para hacer la solicitud HTTP a la API.
+	"log"
+	"net/http" // Para hacer la solicitud HTTP a la API.
+	"os"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 )
+
+func ExampleClient_GetCompletions() {
+	azureOpenAIKey := ""
+	modelDeployment := "gpt-35-turbo-instruct" // ex: gpt-4-vision-preview"
+
+	// Ex: "https://<your-azure-openai-host>.openai.azure.com"
+	azureOpenAIEndpoint := "https://poligpt.upv.es/gpt/ufasu-ia"
+
+	if azureOpenAIKey == "" || modelDeployment == "" || azureOpenAIEndpoint == "" {
+		fmt.Fprintf(os.Stderr, "Skipping example, environment variables missing\n")
+		return
+	}
+
+	keyCredential := azcore.NewKeyCredential(azureOpenAIKey)
+
+	// In Azure OpenAI you must deploy a model before you can use it in your client. For more information
+	// see here: https://learn.microsoft.com/azure/cognitive-services/openai/how-to/create-resource
+	client, err := azopenai.NewClientWithKeyCredential(azureOpenAIEndpoint, keyCredential, nil)
+
+	if err != nil {
+		//  TODO: Update the following line with your application specific error handling logic
+		log.Fatalf("ERROR: %s", err)
+	}
+
+	resp, err := client.GetCompletions(context.TODO(), azopenai.CompletionsOptions{
+		Prompt:         []string{"Cuentame sobre la historia de la IA"},
+		MaxTokens:      to.Ptr(int32(500)),
+		Temperature:    to.Ptr(float32(0.0)),
+		DeploymentName: &modelDeployment,
+	}, nil)
+
+	if err != nil {
+		//  TODO: Update the following line with your application specific error handling logic
+		log.Fatalf("ERROR: %s", err)
+	}
+
+	for _, choice := range resp.Choices {
+		fmt.Fprintf(os.Stderr, "Resultado: %s\n", *choice.Text)
+	}
+
+	// Output:
+}
+
+func main() {
+	ExampleClient_GetCompletions()
+}
 
 // WeatherResponse es la estructura que coincide con la respuesta JSON de la API.
 type WeatherResponse struct {
@@ -16,12 +69,13 @@ type WeatherResponse struct {
 }
 
 // La función main es el punto de entrada del programa.
-func main() {
+/*func main() {
 	// Llamamos a la función obtenerClima para diferentes ciudades.
 	obtenerClima("Jaen", "Spain")
 	obtenerClima("Madrid", "Spain")
 	obtenerClima("Valencia", "Spain")
-}
+
+}*/
 
 // obtenerClima hace una solicitud a la API del clima y muestra la temperatura en Celsius.
 func obtenerClima(ciudad, codigoPais string) {
